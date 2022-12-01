@@ -1,4 +1,6 @@
 const express = require("express");
+var cors = require("cors");
+
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 require("dotenv").config();
@@ -9,6 +11,15 @@ const User = require("./models/User");
 const app = express();
 
 app.use(express.json());
+
+// permitindo acesso de API externas
+app.use((req, res, next) => {
+  res.header("Access-Control-Allow-Origin", "*");
+  res.header("Access-Control-Allow-Methods", "GET, PUT, POST, DELETE");
+  res.header("Access-Control-Allow-Headers", "X-PINGOTHER, Content-Type, Authorization")
+  app.use(cors());
+  next();
+});
 
 // routes
 app.get("/users", eAdmin, async (req, res) => {
@@ -128,14 +139,14 @@ app.post("/login", async (req, res) => {
   if (user === null) {
     return res.status(400).json({
       error: true,
-      message: "ERROR: No user found!"
+      message: "ERROR: Incorrect username or password!"
     });
   };
 
   if (!(await bcrypt.compare(req.body.password, user.password))) {
     return res.status(400).json({
       error: true,
-      message: "ERROR: Invalid password!"
+      message: "ERROR: Incorrect username or password!"
     });
   };
 
@@ -151,6 +162,20 @@ app.post("/login", async (req, res) => {
   });
 });
 
+app.get("/validate-token", eAdmin, async (req, res) => {
+  await User.findByPk(req.userId, { attributes: ["id", "name", "email"] })
+    .then((user) => {
+      return res.json({
+        error: false,
+        user
+      });
+    }).catch(() => {
+      return res.status(400).json({
+        error: true,
+        message: "ERROR: Its necessary to login access the page!"
+      });
+    });
+});
 
 app.listen(8080, () => {
   console.log("Server started on port 8080: http://localhost:8080");
