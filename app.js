@@ -135,9 +135,9 @@ app.put("/user", eAdmin, async (req, res) => {
   const { id } = req.body;
 
   const schema = yup.object().shape({
-    password: yup.string("ERROR: Need to fill in the password field!")
-      .required("ERROR: Need to fill in the password field!")
-      .min(6, "ERROR: Password must be at least 6 characters long!"),
+    // password: yup.string("ERROR: Need to fill in the password field!")
+    //   .required("ERROR: Need to fill in the password field!")
+    //   .min(6, "ERROR: Password must be at least 6 characters long!"),
     email: yup.string("ERROR: Need to fill in the e-mail field!")
       .email("ERROR: Need to fill in the e-mail field!")
       .required("ERROR: Need to fill in the e-mail field!"),
@@ -185,6 +185,21 @@ app.put("/user", eAdmin, async (req, res) => {
 
 app.put("/user-password", eAdmin, async (req, res) => {
   const { id, password } = req.body;
+
+  const schema = yup.object().shape({
+    password: yup.string("ERROR: Need to fill in the password field!")
+      .required("ERROR: Need to fill in the password field!")
+      .min(6, "ERROR: Password must be at least 6 characters long!")
+  });
+
+  try {
+    await schema.validate(req.body);
+  } catch (err) {
+    return res.status(400).json({
+      error: true,
+      message: err.errors
+    });
+  };
 
   var passwordCrypt = await bcrypt.hash(password, 8);
 
@@ -271,6 +286,23 @@ app.get("/validate-token", eAdmin, async (req, res) => {
       return res.status(400).json({
         error: true,
         message: "ERROR: Its necessary to login access the page!"
+      });
+    });
+});
+
+app.get("/view-profile", eAdmin, async (req, res) => {
+  const id = req.userId;
+
+  await User.findByPk(id)
+    .then((user) => {
+      return res.json({
+        error: false,
+        user
+      });
+    }).catch(() => {
+      return res.status(400).json({
+        error: true,
+        message: "ERROR: No users found!"
       });
     });
 });
