@@ -287,6 +287,58 @@ app.get("/validate-token", eAdmin, async (req, res) => {
     });
 });
 
+app.post("/add-user-login", async (req, res) => {
+  var data = req.body;
+
+  const schema = yup.object().shape({
+    password: yup.string("ERROR: Need to fill in the password field!")
+      .required("ERROR: Need to fill in the password field!")
+      .min(6, "ERROR: Password must be at least 6 characters long!"),
+    email: yup.string("ERROR: Need to fill in the email field!")
+      .email("ERROR: Need to fill in the email field!")
+      .required("ERROR: Need to fill in the email field!"),
+    name: yup.string("ERROR: Need to fill in the name field!")
+      .required("ERROR: Need to fill in the name field!")
+  });
+
+  try {
+    await schema.validate(data);
+  } catch (err) {
+    console.log(err);
+    return res.status(400).json({
+      error: true,
+      message: err.errors
+    });
+  };
+
+  const user = await User.findOne({
+    where: {
+      email: req.body.email
+    }
+  });
+  if (user) {
+    return res.status(400).json({
+      error: true,
+      message: "ERROR: This email is already registered!"
+    });
+  }
+
+  data.password = await bcrypt.hash(data.password, 8);
+
+  await User.create(data)
+    .then(() => {
+      return res.json({
+        error: false,
+        message: "Successfully registered user!"
+      });
+    }).catch(() => {
+      return res.status(400).json({
+        error: true,
+        message: "ERROR: User not registered successfully!"
+      });
+    });
+});
+
 app.get("/view-profile", eAdmin, async (req, res) => {
   const id = req.userId;
 
