@@ -135,9 +135,6 @@ app.put("/user", eAdmin, async (req, res) => {
   const { id } = req.body;
 
   const schema = yup.object().shape({
-    // password: yup.string("ERROR: Need to fill in the password field!")
-    //   .required("ERROR: Need to fill in the password field!")
-    //   .min(6, "ERROR: Password must be at least 6 characters long!"),
     email: yup.string("ERROR: Need to fill in the e-mail field!")
       .email("ERROR: Need to fill in the e-mail field!")
       .required("ERROR: Need to fill in the e-mail field!"),
@@ -303,6 +300,90 @@ app.get("/view-profile", eAdmin, async (req, res) => {
       return res.status(400).json({
         error: true,
         message: "ERROR: No users found!"
+      });
+    });
+});
+
+app.put("/edit-profile", eAdmin, async (req, res) => {
+  const id = req.userId;
+
+  const schema = yup.object().shape({
+    email: yup.string("ERROR: Need to fill in the e-mail field!")
+      .email("ERROR: Need to fill in the e-mail field!")
+      .required("ERROR: Need to fill in the e-mail field!"),
+    name: yup.string("ERROR: Need to fill in the name field!")
+      .required("ERROR: Need to fill in the name field!")
+  });
+
+  try {
+    await schema.validate(req.body);
+  } catch (err) {
+    return res.status(400).json({
+      error: true,
+      message: err.errors
+    });
+  };
+
+  const user = await User.findOne({
+    where: {
+      email: req.body.email,
+      id: {
+        [Op.ne]: id
+      }
+    }
+  });
+  if (user) {
+    return res.status(400).json({
+      error: true,
+      message: "ERROR: This email is already registered!"
+    });
+  }
+
+  await User.update(req.body, { where: { id } })
+    .then(() => {
+      return res.json({
+        error: false,
+        message: "Profile successfully edited!"
+      });
+    }).catch(() => {
+      return res.status(400).json({
+        error: true,
+        message: "ERROR: Profile not edited successfully!"
+      });
+    });
+});
+
+app.put("/edit-profile-password", eAdmin, async (req, res) => {
+  const id = req.userId;
+  const { password } = req.body;
+
+  const schema = yup.object().shape({
+    password: yup.string("ERROR: Need to fill in the password field!")
+      .required("ERROR: Need to fill in the password field!")
+      .min(6, "ERROR: Password must be at least 6 characters long!")
+  });
+
+  try {
+    await schema.validate(req.body);
+  } catch (err) {
+    return res.status(400).json({
+      error: true,
+      message: err.errors
+    });
+  };
+
+  var passwordCrypt = await bcrypt.hash(password, 8);
+
+  await User.update({ password: passwordCrypt }, { where: { id } })
+    .then(() => {
+      return res.json({
+        error: false,
+        message: "Password successfully edited!"
+      });
+    }).catch(() => {
+      return res.status(400).json({
+        error: true,
+        message: "ERROR: Password not edited successfully!"
       });
     });
 });
