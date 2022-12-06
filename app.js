@@ -1,6 +1,7 @@
 const express = require("express");
 var cors = require("cors");
 const yup = require("yup");
+const { Op } = require("sequelize");
 
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
@@ -102,6 +103,18 @@ app.post("/user", eAdmin, async (req, res) => {
     });
   };
 
+  const user = await User.findOne({
+    where: {
+      email: req.body.email
+    }
+  });
+  if (user) {
+    return res.status(400).json({
+      error: true,
+      message: "ERROR: This email is already registered!"
+    });
+  }
+
   data.password = await bcrypt.hash(data.password, 8);
 
   await User.create(data)
@@ -125,9 +138,9 @@ app.put("/user", eAdmin, async (req, res) => {
     password: yup.string("ERROR: Need to fill in the password field!")
       .required("ERROR: Need to fill in the password field!")
       .min(6, "ERROR: Password must be at least 6 characters long!"),
-    email: yup.string("ERROR: Need to fill in the email field!")
-      .email("ERROR: Need to fill in the email field!")
-      .required("ERROR: Need to fill in the email field!"),
+    email: yup.string("ERROR: Need to fill in the e-mail field!")
+      .email("ERROR: Need to fill in the e-mail field!")
+      .required("ERROR: Need to fill in the e-mail field!"),
     name: yup.string("ERROR: Need to fill in the name field!")
       .required("ERROR: Need to fill in the name field!")
   });
@@ -135,12 +148,26 @@ app.put("/user", eAdmin, async (req, res) => {
   try {
     await schema.validate(req.body);
   } catch (err) {
-    console.log(err);
     return res.status(400).json({
       error: true,
       message: err.errors
     });
   };
+
+  const user = await User.findOne({
+    where: {
+      email: req.body.email,
+      id: {
+        [Op.ne]: id
+      }
+    }
+  });
+  if (user) {
+    return res.status(400).json({
+      error: true,
+      message: "ERROR: This email is already registered!"
+    });
+  }
 
   await User.update(req.body, { where: { id } })
     .then(() => {
