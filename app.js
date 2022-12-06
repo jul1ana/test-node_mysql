@@ -82,20 +82,23 @@ app.post("/user", eAdmin, async (req, res) => {
   var data = req.body;
 
   const schema = yup.object().shape({
-    name: yup.string()
-      .required(),
-    email: yup.string()
-      .email()
-      .required(),
-    password: yup.string()
-      .required()
+    password: yup.string("ERROR: Need to fill in the password field!")
+      .required("ERROR: Need to fill in the password field!")
+      .min(6, "ERROR: Password must be at least 6 characters long!"),
+    email: yup.string("ERROR: Need to fill in the email field!")
+      .email("ERROR: Need to fill in the email field!")
+      .required("ERROR: Need to fill in the email field!"),
+    name: yup.string("ERROR: Need to fill in the name field!")
+      .required("ERROR: Need to fill in the name field!")
   });
 
-  //caso o usuário nao seja validado
-  if (!(await schema.isValid(data))) {
+  try {
+    await schema.validate(data);
+  } catch (err) {
+    console.log(err);
     return res.status(400).json({
       error: true,
-      message: "ERROR: Required to fill in all fields!"
+      message: err.errors
     });
   };
 
@@ -119,19 +122,23 @@ app.put("/user", eAdmin, async (req, res) => {
   const { id } = req.body;
 
   const schema = yup.object().shape({
-    name: yup.string()
-      .required(),
-    email: yup.string()
-      .email()
-      .required(),
-    password: yup.string()
-      .required()
+    password: yup.string("ERROR: Need to fill in the password field!")
+      .required("ERROR: Need to fill in the password field!")
+      .min(6, "ERROR: Password must be at least 6 characters long!"),
+    email: yup.string("ERROR: Need to fill in the email field!")
+      .email("ERROR: Need to fill in the email field!")
+      .required("ERROR: Need to fill in the email field!"),
+    name: yup.string("ERROR: Need to fill in the name field!")
+      .required("ERROR: Need to fill in the name field!")
   });
 
-  if (!(await schema.isValid(req.body))) {
+  try {
+    await schema.validate(req.body);
+  } catch (err) {
+    console.log(err);
     return res.status(400).json({
       error: true,
-      message: "ERROR: Required to fill in all fields!"
+      message: err.errors
     });
   };
 
