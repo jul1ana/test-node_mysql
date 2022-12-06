@@ -1,5 +1,6 @@
 const express = require("express");
 var cors = require("cors");
+const yup = require("yup");
 
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
@@ -22,16 +23,34 @@ app.use((req, res, next) => {
 });
 
 // routes
-app.get("/users", eAdmin, async (req, res) => {
+app.get("/users/:page", eAdmin, async (req, res) => {
+  const { page = 1 } = req.params;
+  const limit = 40;
+  var lastPage = 1;
+
+  // quantos registros existem no banco de dados
+  const countUser = await User.count();
+  if (countUser === null) {
+    return res.status(400).json({
+      error: true,
+      message: "ERROR: No users found!"
+    });
+  } else {
+    lastPage = Math.ceil(countUser / limit);
+  }
 
   await User.findAll({
-    attributes: ["id", "name", "email", "password"],
-    order: [["id", "DESC"]]
+    attributes: ["id", "name", "email"],
+    order: [["id", "DESC"]],
+    offset: Number((page * limit) - limit),
+    limit: limit
   })
     .then((users) => {
       return res.json({
         error: false,
-        users
+        users,
+        countUser,
+        lastPage
       });
     }).catch(() => {
       return res.status(400).json({
@@ -61,6 +80,25 @@ app.get("/user/:id", eAdmin, async (req, res) => {
 
 app.post("/user", eAdmin, async (req, res) => {
   var data = req.body;
+
+  const schema = yup.object().shape({
+    name: yup.string()
+      .required(),
+    email: yup.string()
+      .email()
+      .required(),
+    password: yup.string()
+      .required()
+  });
+
+  //caso o usuário nao seja validado
+  if (!(await schema.isValid(data))) {
+    return res.status(400).json({
+      error: true,
+      message: "ERROR: Required to fill in all fields!"
+    });
+  };
+
   data.password = await bcrypt.hash(data.password, 8);
 
   await User.create(data)
@@ -79,6 +117,23 @@ app.post("/user", eAdmin, async (req, res) => {
 
 app.put("/user", eAdmin, async (req, res) => {
   const { id } = req.body;
+
+  const schema = yup.object().shape({
+    name: yup.string()
+      .required(),
+    email: yup.string()
+      .email()
+      .required(),
+    password: yup.string()
+      .required()
+  });
+
+  if (!(await schema.isValid(req.body))) {
+    return res.status(400).json({
+      error: true,
+      message: "ERROR: Required to fill in all fields!"
+    });
+  };
 
   await User.update(req.body, { where: { id } })
     .then(() => {
@@ -131,6 +186,15 @@ app.delete("/user/:id", eAdmin, async (req, res) => {
 });
 
 app.post("/login", async (req, res) => {
+
+  // await sleep(3000); // atrasando por 3kms
+
+  // function sleep(ms) {
+  //   return new Promise((resolve) => {
+  //     setTimeout(resolve, ms);
+  //   });
+  // };
+
   const user = await User.findOne({
     attributes: ["id", "name", "email", "password"],
     where: { email: req.body.email }
