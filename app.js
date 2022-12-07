@@ -443,66 +443,59 @@ app.put("/edit-profile-password", eAdmin, async (req, res) => {
 
 app.post("/recover-password", async (req, res) => {
 
-  var transport = nodemailer.createTransport({
-    host: process.env.EMAIL_HOST,
-    port: process.env.EMAIL_PORT,
-    auth: {
-      user: process.env.EMAIL_USER,
-      pass: process.env.EMAIL_PASS
-    }
-  });
+  var data = req.body;
 
-  var message = {
-    from: "edward@gmail.com",
-    to: "webadm@gmail.com",
-    subject: "Instruction to recover password",
-    text: "Dear Edward.\n\nYou have requested a password change.\n\nTo continue the process of recovering your password, click on the link below or paste the address into your browser: \n\nIf you have not requested this change, no action is required. Your password will remain the same until you activate this code.\n\n",
-    html: "Dear Edward.<br><br>You have requested a password change.<br><br>To continue the process of recovering your password, click on the link below or paste the address into your browser: <br><br>If you did not request this change, no action is required. Your password will remain the same until you activate this code.<br><br>"
-  };
-
-  await transport.sendMail(message, function (err) {
-    if (err) return res.status(400).json({
-      error: true,
-      message: "ERROR: E-mail not sent successfully!"
-    });
-
-    return res.json({
-      error: false,
-      message: "E-mail successfully sent!"
-    });
-  })
-
-  /*
   const user = await User.findOne({
-    attributes: ["id", "name", "email", "password"],
-    where: { email: req.body.email }
+    attributes: ["id", "name", "email"],
+    where: { email: data.email }
   });
 
   if (user === null) {
     return res.status(400).json({
       error: true,
-      message: "ERROR: Incorrect username or password!"
+      message: "ERROR: User not found!"
     });
   };
 
-  if (!(await bcrypt.compare(req.body.password, user.password))) {
-    return res.status(400).json({
-      error: true,
-      message: "ERROR: Incorrect username or password!"
+  data.recover_password = (await bcrypt.hash(user.id + user.name + user.email, 8)).replace(/\./g, "").replace(/\//g, "");
+
+  await User.update(data, { where: { id: user.id } })
+    .then(() => {
+
+      var transport = nodemailer.createTransport({
+        host: process.env.EMAIL_HOST,
+        port: process.env.EMAIL_PORT,
+        auth: {
+          user: process.env.EMAIL_USER,
+          pass: process.env.EMAIL_PASS
+        }
+      });
+
+      var message = {
+        from: process.env.EMAIL_FROM_PASS,
+        to: data.email,
+        subject: "Instruction to recover password",
+        text: "Dear Edward.\n\nYou have requested a password change.\n\nTo continue the process of recovering your password, click on the link below or paste the address into your browser: " + data.url + data.recover_password + " \n\nIf you have not requested this change, no action is required. Your password will remain the same until you activate this code.\n\n",
+        html: "Dear Edward.<br><br>You have requested a password change.<br><br>To continue the process of recovering your password, click on the link below or paste the address into your browser: <a href='" + data.url + data.recover_password + "'>Click here</a> <br><br>If you did not request this change, no action is required. Your password will remain the same until you activate this code.<br><br>"
+      };
+
+      transport.sendMail(message, function (err) {
+        if (err) return res.status(400).json({
+          error: true,
+          message: "ERROR: E-mail with password recovery instructions not sent, please try again!"
+        });
+
+        return res.json({
+          error: false,
+          message: "Sending e-mail with instructions to recover the password. Access your email box to recover your password!"
+        });
+      });
+    }).catch(() => {
+      return res.status(400).json({
+        error: true,
+        message: "ERROR: E-mail with password recovery instructions not sent, please try again!"
+      });
     });
-  };
-
-  var token = jwt.sign({ id: user.id }, process.env.SECRET, {
-    //expiresIn: 600 // 10min expira
-    expiresIn: "7d" // 7 dias
-  });
-
-  return res.json({
-    error: false,
-    message: "Successful login made!",
-    token
-  });
-  */
 });
 
 app.listen(8080, () => {
