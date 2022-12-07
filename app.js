@@ -498,6 +498,28 @@ app.post("/recover-password", async (req, res) => {
     });
 });
 
+app.get("/validate-key-recover-pass/:key", async (req, res) => {
+  const { key } = req.params;
+
+  const user = await User.findOne({
+    attributes: ["id"],
+    where: { recover_password: key }
+  });
+
+  if (user === null) {
+    return res.status(400).json({
+      error: true,
+      message: "ERROR: Link invalid!"
+    });
+  };
+
+  return res.json({
+    error: false,
+    message: "Key is valid!"
+  });
+
+});
+
 app.listen(8080, () => {
   console.log("Server started on port 8080: http://localhost:8080");
 });
