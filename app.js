@@ -517,7 +517,55 @@ app.get("/validate-key-recover-pass/:key", async (req, res) => {
     error: false,
     message: "Key is valid!"
   });
+});
 
+app.put("/update-password/:key", async (req, res) => {
+  const { key } = req.params;
+  const { password } = req.body;
+
+  const schema = yup.object().shape({
+    password: yup.string("ERROR: Need to fill in the password field!")
+      .required("ERROR: Need to fill in the password field!")
+      .min(6, "ERROR: Password must be at least 6 characters long!")
+  });
+
+  try {
+    await schema.validate(req.body);
+  } catch (err) {
+    return res.status(400).json({
+      error: true,
+      message: err.errors
+    });
+  };
+
+  var passwordCrypt = await bcrypt.hash(password, 8);
+
+  await User.update({ password: passwordCrypt, recover_password: null }, { where: { recover_password: key } })
+    .then(() => {
+      return res.json({
+        error: false,
+        message: "Password successfully edited!"
+      });
+    }).catch(() => {
+      return res.status(400).json({
+        error: true,
+        message: "ERROR: Password not edited successfully!"
+      });
+    });
+
+  /*
+  return res.json({
+    error: false,
+    message: "Password successfully edited!",
+    key
+  });
+  
+  return res.status(400).json({
+    error: true,
+    message: "Password not successfully edited!",
+    key
+  });
+  */
 });
 
 app.listen(8080, () => {
