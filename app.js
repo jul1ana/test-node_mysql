@@ -10,6 +10,7 @@ require("dotenv").config();
 
 const { eAdmin } = require("./middlewares/auth");
 const User = require("./models/User");
+const upload = require("./middlewares/uploadImgProfile");
 
 const app = express();
 
@@ -552,20 +553,13 @@ app.put("/update-password/:key", async (req, res) => {
         message: "ERROR: Password not edited successfully!"
       });
     });
+});
 
-  /*
+app.put("/edit-profile-image", eAdmin, upload.single("image"), async (req, res) => {
   return res.json({
     error: false,
-    message: "Password successfully edited!",
-    key
+    message: "Image successfully edited!"
   });
-  
-  return res.status(400).json({
-    error: true,
-    message: "Password not successfully edited!",
-    key
-  });
-  */
 });
 
 app.listen(8080, () => {
