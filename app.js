@@ -8,6 +8,7 @@ const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 require("dotenv").config();
 const fs = require("fs");
+const path = require("path");
 
 const { eAdmin } = require("./middlewares/auth");
 const User = require("./models/User");
@@ -16,6 +17,8 @@ const upload = require("./middlewares/uploadImgProfile");
 const app = express();
 
 app.use(express.json());
+
+app.use("/files", express.static(path.resolve(__dirname, "public", "upload")));
 
 // permitindo acesso de API externas
 app.use((req, res, next) => {
@@ -70,9 +73,11 @@ app.get("/user/:id", eAdmin, async (req, res) => {
   // await User.findAll({ where: { id: id } })
   await User.findByPk(id)
     .then((user) => {
+      var addressImg = "http://localhost:8080/files/users/";
       return res.json({
         error: false,
-        user: user
+        user: user,
+        addressImg
       });
     }).catch(() => {
       return res.status(400).json({
@@ -579,7 +584,8 @@ app.put("/edit-profile-image", eAdmin, upload.single("image"), async (req, res) 
       .then(() => {
         return res.json({
           error: false,
-          message: "Profile image successfully edited!"
+          message: "Profile image successfully edited!",
+          id: req.userId
         });
       }).catch(() => {
         return res.status(400).json({
